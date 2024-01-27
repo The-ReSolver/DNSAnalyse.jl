@@ -1,0 +1,10 @@
+name = "DNSAnalyse"
+uuid = "14f1e168-4bf0-45e2-9a74-aa2e451932dc"
+authors = ["Thomas Burton <tburton5572@gmail.com>"]
+version = "0.1.0"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
