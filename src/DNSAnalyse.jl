@@ -1,5 +1,7 @@
 module DNSAnalyse
 
+using IniFile
+
 # This purpose of this package is to provide a set of tools to easily analyse
 # a set of DNS data.
 
@@ -13,9 +15,13 @@ module DNSAnalyse
 # One of the targets of this package to remove the DNS data unpacking code from
 # the Fields.jl package since it is becoming monolithic.
 
+export DNSData, loadDNS
+export dns2field!, dns2field, correct_mean!
+export mean!, mean
+
 include("snapshoterror.jl")
 include("snapshot.jl")
 include("dnsdata.jl")
-include("utils.jl")
+# include("utils.jl")
 
 end
