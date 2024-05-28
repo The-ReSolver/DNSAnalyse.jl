@@ -3,13 +3,13 @@
 struct DNSData{Ny, Nz, Nt}
     loc::String
     params::Inifile
-    snaps_string::Vector{String}
+    snaps::Vector{Float64}
 end
 
 function DNSData(loc::String)
     ini = _read_params(loc*"params")
-    snaps = _filterDirectoryToSnapshots(loc)
-    DNSData{_fetch_param(ini, :Ny, Int), _fetch_param(ini, :Nz, Int), length(snaps)}(loc, ini, _sort_snaps!(snaps))
+    snaps = tryparse.(_filterDirectoryToSnapshots(loc))
+    DNSData{_fetch_param(ini, :Ny, Int), _fetch_param(ini, :Nz, Int), length(snaps)}(loc, ini, snaps)
 end
 loadDNS(loc) = DNSData(string(loc))
 
@@ -32,8 +32,6 @@ function Base.getproperty(data::DNSData{Ny, Nz, Nt}, field::Symbol) where {Ny, N
         step = 1/(Ny - 1)
         sf = getproperty(data, :stretch_factor)
         return tanh.(sf*((0:Ny - 1)*step .- 0.5))/tanh(0.5*sf)
-    elseif field === :snaps
-        return tryparse.(Float64, data.snaps_string)
     else
         return getfield(data, field)
     end
@@ -61,5 +59,4 @@ Base.lastindex(data::DNSData) = tryparse(Float64, data.snaps_string[lastindex(da
 _read_params(loc::String) = read(Inifile(), loc)
 _fetch_param(ini::Inifile, param::Symbol, ::Type{T}=Float64) where {T} = tryparse(T, strip(get(ini, "params", string(param)), ';'))
 _getparamfield(data::DNSData, field::Symbol) = _fetch_param(getfield(data, :params), field)
-_sort_snaps!(snaps::Vector{String}) = sort(snaps, by=x->tryparse(Float64, x))
-_filterDirectoryToSnapshots(path) = filter!(x -> x=="params" || x=="K" || x=="t" ? false : true, readdir(path))
+_filterDirectoryToSnapshots(path) = filter!(x -> x=="params" || x=="K" || x=="t" ? false : true, readdir(path, sort=true))
