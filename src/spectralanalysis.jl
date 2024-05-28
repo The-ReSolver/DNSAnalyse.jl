@@ -27,7 +27,16 @@ function powerSpectra(timeSeries, sampleRate, windowFunction=hannWindow)
     return abs2.(rfft(windowedTimeSeriesFluctuations)./length(timeSeries)), rfftfreq(length(timeSeries), sampleRate)
 end
 
-# TODO: redo using only peaks
+function filter_peaks(spectra, freqs, period)
+    peak_indices, peaks = findmaxima(spectra)
+    interpPeakFreq = zero(peaks)
+    interpPeakValue = zero(peaks)
+    for (i, peak_index) in enumerate(peak_indices)
+        interpPeakFreq[i], interpPeakValue[i] = interpolatePeak(getInterpolationPoints(peak_index, spectra, freqs)..., period)
+    end
+    return interpPeakFreq, interpPeakValue
+end
+
 function spectraEnergy(spectra, energyThreshold=1.0)
     spectralEnergy = sum(spectra)
     energyFraction = 0.0
