@@ -13,5 +13,6 @@ include("snapshot.jl")
 include("dnsdata.jl")
 include("convert2field.jl")
 include("mean.jl")
+include("spectralanalysis.jl")
 
 end
