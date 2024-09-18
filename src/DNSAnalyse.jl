@@ -1,6 +1,6 @@
 module DNSAnalyse
 
-using IniFile, FFTW
+using IniFile, FFTW, Printf, Mmap
 
 using Fields, FDGrids
 

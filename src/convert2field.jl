@@ -1,43 +1,36 @@
 # Functions to convert a DNSData object into an array of spectral field
 
-function dsn2array!(A::Vector{Array{Float64, 3}}, data::DNSData)
-    for (i, snap) in enumerate(data)
-        A[1][:, :, i] = snap[1]
-        A[2][:, :, i] = snap[2]
-        A[3][:, :, i] = snap[3]
+function data2PhysicalField(data::DNSData{Ny, Nz, Nt}, grid::Grid{S}) where {Ny, Nz, Nt, S}
+    S[1] == Ny || throw(ArgumentError("Wall normal discretisation is not compatible!"))
+    u = VectorField(grid, fieldType=PhysicalField)
+    for n in 1:3, (i, snap) in enumerate(data)
+        u[n][:, :, i] .= snap[n]
     end
-    return correct_mean!(A, data)
+    return u
 end
-dns2array(data::DNSData{Ny, Nz, Nt}) where {Ny, Nz, Nt} = dns2array!([Array{Float64, 3}(undef, Ny, Nz, Nt)], data)
 
-function dns2spectralfield(data::DNSData{Ny, Nz, Nt}, size::NTuple{2, Int}=((Nz >> 1) + 1, Nt); diffmatrix_order::Int=5, quadweights_order=3) where {Ny, Nz, Nt}
-    grid = Grid(data.y, size..., DiffMatrix(data.y, diffmatrix_order, 1), DiffMatrix(data.y, diffmatrix_order, 2), quadweights(data.y, quadweights_order), 2π/data.L, 2π/(data.snaps[end] - data.snaps[1]))
+function data2SpectralField(data::DNSData{Ny, Nz, Nt}, grid::Grid{S}) where {Ny, Nz, Nt, S}
+    S[1] == Ny || throw(ArgumentError("Wall normal discretisation is not compatible!"))
     u = VectorField(grid)
-    A = dns2array(data)
-    if size[1] <= Nz && size[2] <= Nt
-        for i in 1:3
-            u[i] .= rfft(A[i], [2, 3])[:, 1:((size[1] >> 1) + 1), 1:size[2]]
-        end
-    elseif size[1] <= Nz && size[2] > Nt
-        for i in 1:3
-            u[i][:, :, 1:Nt] .= rfft(A[i], [2, 3])[:, 1:((size[1] >> 1) + 1), :]
-        end
-    elseif size[1] > Nz && size[2] <= Nt
-        for i in 1:3
-            u[i][:, 1:((Nz >> 1) + 1), :] .= rfft(A[i], [2, 3])[:, :, 1:size[2]]
-        end
-    else
-        for i in 1:3
-            u[i][:, 1:((Nz >> 1) + 1), 1:Nt] .= rfft(A[i], [2, 3])[:, :, :]
-        end
+    A = [Array{Float64, 3}(undef, data.Ny, data.Nz, data.Nt) for _ in 1:3]
+    for n in 1:3, (i, snap) in enumerate(data)
+        A[n][:, :, i] .= snap[n]
     end
-    return correct_mean!(u, data)
+    B = [rfft(A[i], [2, 3])./(data.Nz*data.Nt) for i in 1:3]
+    for n in 1:3, nz in 1:((minimum([S[2], Nz]) >> 1) + 1), nt in 1:((minimum([S[3], Nt]) >> 1) + 1)
+        u[n][:, nz, nt] .= B[n][:, nz, nt]
+        u[n][:, nz, end-nt+1] .= B[n][:, nz, end-nt+1]
+    end
+    return u
 end
 
-correct_mean!(u::VectorField{3, S}, data::DNSData{Ny, Nz, Nt}) where {Ny, Nz, Nt, S<:SpectralField{Ny, Nz, Nt}} = (u[1][:, 1, 1] .+= data.y; return u)
-function correct_mean!(A::Array{Float64, 3}, data::DNSData{Ny, Nz, Nt}) where {Ny, Nz, Nt}
-    for nt in 1:Nt, nz in 1:Nz
-        A[1][:, nz, nt] .+= data.y
+data2Coefficients(data::DNSData{Ny, Nz, Nt}, grid::Grid{S}, modes) where {Ny, Nz, Nt, S} = return expand!(SpectralField(grid, modes), data2SpectralField(data, grid), grid.ws, modes)
+
+
+correct_mean!(u::VectorField{3, S}, y::Vector{Float64}) where {S<:SpectralField} = (u[1][:, 1, 1] .+= y; return u)
+function correct_mean!(A::Array{Float64, 3}, y::Vector{Float64})
+    for nt in axes(A, 2), nz in axes(A, 3)
+        A[1][:, nz, nt] .+= y
     end
     return A
 end
