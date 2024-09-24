@@ -45,7 +45,7 @@ Base.size(::DNSData{Ny, Nz, Nt}) where {Ny, Nz, Nt} = (Ny, Nz, Nt)
 
 function Base.getindex(data::DNSData{Ny, Nz}, t::Real) where {Ny, Nz}
     i = findfirst(x->x==t, data.snaps)
-    isnothing(i) ? throw(SnapshotTimeError(t)) : Snapshot(data.loc*string(data.snaps[i])*"/", Ny, Nz)
+    isnothing(i) ? throw(SnapshotTimeError(t)) : Snapshot(data.loc*@sprintf("%.6f", data.snaps[i])*"/", Ny, Nz)
 end
 Base.getindex(data::DNSData, ::Nothing) = data
 Base.getindex(data::DNSData, range::NTuple{2, Real}; skip_step::Int=1) = getindex(data, range..., skip_step=skip_step)
